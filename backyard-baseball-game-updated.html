@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Blaze Backyard Championship</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D982 60%, #567D46 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Title Screen */
+        #title-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #5D76A9 0%, #BF5700 100%);
+            z-index: 100;
+        }
+
+        #title-screen h1 {
+            font-size: 3em;
+            color: white;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .subtitle {
+            color: #FFD700;
+            font-size: 1.5em;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .inning-buttons {
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background: white;
+            color: #333;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            min-width: 100px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Team Selection */
+        #team-select {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D982 100%);
+            z-index: 90;
+        }
+
+        .team-options {
+            display: flex;
+            gap: 50px;
+            margin-top: 30px;
+        }
+
+        .team-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .team-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .team-card h2 {
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+
+        .memphis { color: #5D76A9; }
+        .austin { color: #BF5700; }
+
+        /* Game Field */
+        #game-field {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 10;
+        }
+
+        #diamond {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            background: #8B7355;
+            border: 3px solid #654321;
+        }
+
+        .base {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 2px solid #333;
+            z-index: 15;
+        }
+
+        #first-base { top: -20px; right: -20px; }
+        #second-base { top: -20px; left: -20px; }
+        #third-base { bottom: -20px; left: -20px; }
+        #home-base { 
+            bottom: -20px; 
+            right: -20px; 
+            background: #FFD700;
+            transform: rotate(45deg);
+        }
+
+        #pitcher-mound {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #8B7355;
+            border-radius: 50%;
+            border: 2px solid #654321;
+            z-index: 16;
+        }
+
+        .player {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            transition: all 0.3s;
+            z-index: 20;
+        }
+
+        /* Fielder styling for additional defensive players */
+        .fielder {
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            border-radius: 50%;
+            background: #ccc;
+            color: #fff;
+            justify-content: center;
+            align-items: center;
+            z-index: 18;
+            transition: all 0.8s ease-out;
+        }
+
+        /* Initial positioning for each fielder; these values are percentages relative to the game field */
+        #left-fielder { top: 20%; left: 20%; }
+        #center-fielder { top: 10%; left: 50%; transform: translateX(-50%); }
+        #right-fielder { top: 20%; right: 20%; }
+        #shortstop { top: 60%; left: 30%; }
+        #second-baseman-player { top: 60%; right: 30%; }
+        #first-baseman-player { top: 70%; right: 15%; }
+        #third-baseman-player { top: 70%; left: 15%; }
+
+        /* Runner sprite used to animate baserunning */
+        #runner {
+            width: 40px;
+            height: 40px;
+            font-size: 22px;
+            border-radius: 50%;
+            background: #FFD700;
+            color: #333;
+            z-index: 21;
+            position: absolute;
+            display: none;
+            transition: all 0.8s linear;
+        }
+
+        #pitcher {
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #batter {
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .ball {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            border: 1px solid #333;
+            z-index: 25;
+            display: none;
+        }
+
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            display: none;
+            padding: 0 20px;
+            z-index: 30;
+        }
+
+        .score-display {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .team-score {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .inning-display {
+            font-size: 1.2em;
+        }
+
+        /* Controls */
+        #game-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 20px;
+            z-index: 35;
+        }
+
+        .game-btn {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+
+        .game-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .game-btn:active {
+            transform: translateY(0);
+        }
+
+        .game-btn:disabled {
+            background: #888;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #special-btn {
+            background: #FFD700;
+            color: #333;
+        }
+
+        #special-btn:hover {
+            background: #FFC700;
+        }
+
+        /* Count Display */
+        #count-display {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            z-index: 32;
+        }
+
+        .count-row {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 1.1em;
+        }
+
+        .count-label {
+            width: 60px;
+            font-weight: bold;
+        }
+
+        .count-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #ddd;
+            border: 1px solid #999;
+        }
+
+        .dot.active {
+            background: #4CAF50;
+        }
+
+        .dot.ball { background: #2196F3; }
+        .dot.strike { background: #f44336; }
+        .dot.out { background: #333; }
+
+        /* Base Indicators */
+        #base-display {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            display: none;
+            z-index: 33;
+        }
+
+        .base-indicator {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            background: rgba(255,255,255,0.9);
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .mini-base {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ddd;
+            border: 1px solid #666;
+        }
+
+        .mini-base.occupied {
+            background: #4CAF50;
+        }
+
+        .mini-base:nth-child(1) { top: 30px; right: 10px; }
+        .mini-base:nth-child(2) { top: 10px; left: 30px; }
+        .mini-base:nth-child(3) { top: 30px; left: 10px; }
+
+        /* Power Meter */
+        #power-meter {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            width: 30px;
+            height: 200px;
+            background: #333;
+            border: 2px solid #000;
+            border-radius: 5px;
+            display: none;
+            z-index: 34;
+        }
+
+        #power-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, #f44336 0%, #FFEB3B 50%, #4CAF50 100%);
+            border-radius: 3px;
+            transition: height 0.1s;
+        }
+
+        /* Feedback Text */
+        .feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 50;
+            animation: feedbackPop 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes feedbackPop {
+            0% {
+                transform: translate(-50%, -50%) scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2) rotate(10deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+                opacity: 0;
+            }
+        }
+
+        /* Game Over Modal */
+        #game-over {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .game-over-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .game-over-content h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .final-score {
+            font-size: 2em;
+            margin: 20px 0;
+        }
+
+        /* Scoreboard */
+        #scoreboard {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.95);
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+            z-index: 31;
+        }
+
+        .scoreboard-grid {
+            display: grid;
+            grid-template-columns: 100px repeat(10, 25px) 40px;
+            gap: 2px;
+            font-size: 0.9em;
+        }
+
+        .scoreboard-cell {
+            padding: 3px;
+            text-align: center;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+        }
+
+        .scoreboard-header {
+            background: #333;
+            color: white;
+            font-weight: bold;
+        }
+
+        .current-inning {
+            background: #FFD700 !important;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            #title-screen h1 { font-size: 2em; }
+            .subtitle { font-size: 1.2em; }
+            #diamond { 
+                width: 250px; 
+                height: 250px; 
+            }
+            .feedback { font-size: 2em; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Title Screen -->
+        <div id="title-screen">
+            <h1>⚾ BLAZE BACKYARD CHAMPIONSHIP ⚾</h1>
+            <div class="subtitle">Memphis Grindhouse vs Austin Weirdos</div>
+            <div class="inning-buttons">
+                <button class="btn" onclick="startGame(3)">3 Innings</button>
+                <button class="btn" onclick="startGame(6)">6 Innings</button>
+                <button class="btn" onclick="startGame(9)">9 Innings</button>
+            </div>
+        </div>
+
+        <!-- Team Selection -->
+        <div id="team-select">
+            <h2 style="color: white; font-size: 2em; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Choose Your Team</h2>
+            <div class="team-options">
+                <div class="team-card" onclick="selectTeam('memphis')">
+                    <h2 class="memphis">Memphis Grindhouse</h2>
+                    <div style="font-size: 3em;">💪</div>
+                    <p>Grit N Grind<br>Defense Wins Games</p>
+                </div>
+                <div class="team-card" onclick="selectTeam('austin')">
+                    <h2 class="austin">Austin Weirdos</h2>
+                    <div style="font-size: 3em;">🤘</div>
+                    <p>Keep It Weird<br>Chaos Creates Opportunity</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Field -->
+        <div id="game-field">
+            <div id="diamond">
+                <div class="base" id="first-base"></div>
+                <div class="base" id="second-base"></div>
+                <div class="base" id="third-base"></div>
+                <div class="base" id="home-base"></div>
+                <div id="pitcher-mound"></div>
+            </div>
+            <!-- Main defensive and offensive players -->
+            <div class="player" id="pitcher">⚾</div>
+            <div class="player" id="batter">🏏</div>
+            <div class="ball"></div>
+
+            <!-- Fielder sprites for all defensive positions -->
+            <div id="fielders">
+                <div class="player fielder" id="left-fielder">🧢</div>
+                <div class="player fielder" id="center-fielder">🧢</div>
+                <div class="player fielder" id="right-fielder">🧢</div>
+                <div class="player fielder" id="shortstop">🧢</div>
+                <div class="player fielder" id="second-baseman-player">🧢</div>
+                <div class="player fielder" id="first-baseman-player">🧢</div>
+                <div class="player fielder" id="third-baseman-player">🧢</div>
+            </div>
+
+            <!-- Runner sprite for animating baserunning -->
+            <div class="player" id="runner" style="display:none;">🏃</div>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud">
+            <div class="score-display">
+                <div class="team-score memphis" id="memphis-score">MEM: 0</div>
+                <div class="inning-display" id="inning-display">Top 1st</div>
+                <div class="team-score austin" id="austin-score">AUS: 0</div>
+            </div>
+        </div>
+
+        <!-- Scoreboard Grid -->
+        <div id="scoreboard">
+            <div class="scoreboard-grid" id="scoreboard-grid"></div>
+        </div>
+
+        <!-- Game Controls -->
+        <div id="game-controls">
+            <button class="game-btn" id="pitch-btn" onclick="playerPitch()">PITCH</button>
+            <button class="game-btn" id="swing-btn" onclick="playerSwing()">SWING</button>
+            <button class="game-btn" id="take-btn" onclick="playerTake()">TAKE</button>
+            <button class="game-btn" id="special-btn" onclick="useSpecial()">SPECIAL ⚡</button>
+        </div>
+
+        <!-- Count Display -->
+        <div id="count-display">
+            <div class="count-row">
+                <span class="count-label">Balls:</span>
+                <div class="count-dots">
+                    <div class="dot ball" id="ball-1"></div>
+                    <div class="dot ball" id="ball-2"></div>
+                    <div class="dot ball" id="ball-3"></div>
+                    <div class="dot ball" id="ball-4"></div>
+                </div>
+            </div>
+            <div class="count-row">
+                <span class="count-label">Strikes:</span>
+                <div class="count-dots">
+                    <div class="dot strike" id="strike-1"></div>
+                    <div class="dot strike" id="strike-2"></div>
+                    <div class="dot strike" id="strike-3"></div>
+                </div>
+            </div>
+            <div class="count-row">
+                <span class="count-label">Outs:</span>
+                <div class="count-dots">
+                    <div class="dot out" id="out-1"></div>
+                    <div class="dot out" id="out-2"></div>
+                    <div class="dot out" id="out-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Base Display -->
+        <div id="base-display">
+            <div class="base-indicator">
+                <div class="mini-base" id="mini-first"></div>
+                <div class="mini-base" id="mini-second"></div>
+                <div class="mini-base" id="mini-third"></div>
+            </div>
+        </div>
+
+        <!-- Power Meter -->
+        <div id="power-meter">
+            <div id="power-fill"></div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="game-over">
+            <div class="game-over-content">
+                <h2 id="winner-text">GAME OVER</h2>
+                <div class="final-score" id="final-score">MEM 0 - AUS 0</div>
+                <button class="btn" onclick="location.reload()">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Team Data Structures
+        const teams = {
+            memphis: {
+                name: "Memphis Grindhouse",
+                color: "#5D76A9",
+                emoji: "💪",
+                players: [
+                    { name: "Tony Defense", power: 65, contact: 85, speed: 75, special: "Guaranteed Hit" },
+                    { name: "Z-Force", power: 90, contact: 70, speed: 40, special: "Power Blast" },
+                    { name: "Ja Lightning", power: 75, contact: 80, speed: 95, special: "Steal Master" },
+                    { name: "Grit McGrind", power: 70, contact: 75, speed: 60, special: "Rally Starter" },
+                    { name: "Blues Brother", power: 80, contact: 65, speed: 55, special: "Clutch Hit" },
+                    { name: "Beale Basher", power: 85, contact: 60, speed: 50, special: "Extra Base" },
+                    { name: "Forum Fury", power: 60, contact: 90, speed: 70, special: "Contact King" },
+                    { name: "River Runner", power: 55, contact: 85, speed: 85, special: "Speed Demon" },
+                    { name: "Grind Time", power: 75, contact: 75, speed: 65, special: "Never Out" }
+                ],
+                pitchers: [
+                    { name: "Shutdown Steve", fastball: 70, curve: 30, speed: 85 },
+                    { name: "Grindhouse Gary", fastball: 60, curve: 40, speed: 75 }
+                ]
+            },
+            austin: {
+                name: "Austin Weirdos",
+                color: "#BF5700",
+                emoji: "🤘",
+                players: [
+                    { name: "Tech Titan", power: 75, contact: 75, speed: 75, special: "Algorithm Hit" },
+                    { name: "Weird Willie", power: 70, contact: 80, speed: 65, special: "Chaos Mode" },
+                    { name: "Taco Thunder", power: 95, contact: 55, speed: 45, special: "Moonshot" },
+                    { name: "Sixth Street", power: 80, contact: 70, speed: 60, special: "Party Time" },
+                    { name: "Live Music", power: 65, contact: 85, speed: 80, special: "Rhythm Hit" },
+                    { name: "Barton Bomber", power: 85, contact: 65, speed: 55, special: "Spring Power" },
+                    { name: "Silicon Slugger", power: 90, contact: 60, speed: 50, special: "Tech Boost" },
+                    { name: "Leslie Legend", power: 60, contact: 90, speed: 85, special: "Weird Magic" },
+                    { name: "BBQ Boss", power: 75, contact: 80, speed: 60, special: "Smoke Screen" }
+                ],
+                pitchers: [
+                    { name: "Weird Pitch Pete", fastball: 50, curve: 50, speed: 80 },
+                    { name: "Keep It Strange", fastball: 65, curve: 35, speed: 90 }
+                ]
+            }
+        };
+
+        // Game State
+        let game = {
+            inning: 1,
+            halfInning: 'top',
+            totalInnings: 9,
+            balls: 0,
+            strikes: 0,
+            outs: 0,
+            bases: [false, false, false],
+            currentBatter: 0,
+            currentPitcher: 0,
+            battingTeam: null,
+            fieldingTeam: null,
+            playerTeam: null,
+            cpuTeam: null,
+            scores: {
+                memphis: [],
+                austin: []
+            },
+            totalScores: {
+                memphis: 0,
+                austin: 0
+            },
+            pitchInProgress: false,
+            powerMeterValue: 0,
+            powerMeterDirection: 1,
+            powerMeterSpeed: 2,
+            powerMeterInterval: null,
+            specialsUsed: new Set(),
+            specialActive: false
+        };
+
+        // Initialize scoreboard
+        function initializeScoreboard() {
+            const grid = document.getElementById('scoreboard-grid');
+            grid.innerHTML = '';
+            
+            // Header row
+            const headers = ['Team', ...Array.from({length: game.totalInnings}, (_, i) => i + 1), 'R'];
+            headers.forEach(header => {
+                const cell = document.createElement('div');
+                cell.className = 'scoreboard-cell scoreboard-header';
+                cell.textContent = header;
+                grid.appendChild(cell);
+            });
+
+            // Team rows
+            ['memphis', 'austin'].forEach(team => {
+                const teamCell = document.createElement('div');
+                teamCell.className = 'scoreboard-cell';
+                teamCell.textContent = team === 'memphis' ? 'MEM' : 'AUS';
+                teamCell.style.background = teams[team].color;
+                teamCell.style.color = 'white';
+                grid.appendChild(teamCell);
+
+                for (let i = 0; i < game.totalInnings; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'scoreboard-cell';
+                    cell.id = `score-${team}-${i}`;
+                    cell.textContent = '-';
+                    grid.appendChild(cell);
+                }
+
+                const totalCell = document.createElement('div');
+                totalCell.className = 'scoreboard-cell';
+                totalCell.id = `total-${team}`;
+                totalCell.textContent = '0';
+                totalCell.style.fontWeight = 'bold';
+                grid.appendChild(totalCell);
+            });
+        }
+
+        // Start game with selected innings
+        function startGame(innings) {
+            game.totalInnings = innings;
+            document.getElementById('title-screen').style.display = 'none';
+            document.getElementById('team-select').style.display = 'flex';
+        }
+
+        // Select team
+        function selectTeam(team) {
+            game.playerTeam = team;
+            game.cpuTeam = team === 'memphis' ? 'austin' : 'memphis';
+            
+            // Coin flip for first bat
+            if (Math.random() < 0.5) {
+                game.battingTeam = game.playerTeam;
+                game.fieldingTeam = game.cpuTeam;
+            } else {
+                game.battingTeam = game.cpuTeam;
+                game.fieldingTeam = game.playerTeam;
+            }
+
+            // Initialize scores array
+            for (let i = 0; i < game.totalInnings; i++) {
+                game.scores.memphis.push(0);
+                game.scores.austin.push(0);
+            }
+
+            // Start the game
+            document.getElementById('team-select').style.display = 'none';
+            document.getElementById('game-field').style.display = 'block';
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('scoreboard').style.display = 'block';
+            document.getElementById('count-display').style.display = 'block';
+            document.getElementById('base-display').style.display = 'block';
+            document.getElementById('game-controls').style.display = 'flex';
+
+            initializeScoreboard();
+            updateDisplay();
+            startPowerMeter();
+            nextBatter();
+        }
+
+        // Power meter animation
+        function startPowerMeter() {
+            game.powerMeterInterval = setInterval(() => {
+                game.powerMeterValue += game.powerMeterDirection * game.powerMeterSpeed;
+                
+                if (game.powerMeterValue >= 100) {
+                    game.powerMeterValue = 100;
+                    game.powerMeterDirection = -1;
+                } else if (game.powerMeterValue <= 0) {
+                    game.powerMeterValue = 0;
+                    game.powerMeterDirection = 1;
+                }
+
+                const fill = document.getElementById('power-fill');
+                fill.style.height = game.powerMeterValue + '%';
+                
+                // Show/hide meter based on batting
+                const meter = document.getElementById('power-meter');
+                if (game.battingTeam === game.playerTeam && !game.pitchInProgress) {
+                    meter.style.display = 'block';
+                } else {
+                    meter.style.display = 'none';
+                }
+            }, 30);
+        }
+
+        // Update all displays
+        function updateDisplay() {
+            // Update score
+            document.getElementById('memphis-score').textContent = `MEM: ${game.totalScores.memphis}`;
+            document.getElementById('austin-score').textContent = `AUS: ${game.totalScores.austin}`;
+            
+            // Update inning
+            const inningText = game.halfInning === 'top' ? 'Top ' : 'Bottom ';
+            const inningNum = game.inning;
+            const suffix = inningNum === 1 ? 'st' : inningNum === 2 ? 'nd' : inningNum === 3 ? 'rd' : 'th';
+            document.getElementById('inning-display').textContent = inningText + inningNum + suffix;
+
+            // Update count
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`ball-${i}`).classList.toggle('active', i <= game.balls);
+            }
+            for (let i = 1; i <= 3; i++) {
+                document.getElementById(`strike-${i}`).classList.toggle('active', i <= game.strikes);
+            }
+            for (let i = 1; i <= 3; i++) {
+                document.getElementById(`out-${i}`).classList.toggle('active', i <= game.outs);
+            }
+
+            // Update bases
+            document.getElementById('mini-first').classList.toggle('occupied', game.bases[0]);
+            document.getElementById('mini-second').classList.toggle('occupied', game.bases[1]);
+            document.getElementById('mini-third').classList.toggle('occupied', game.bases[2]);
+
+            // Update controls
+            const isPitching = game.fieldingTeam === game.playerTeam;
+            document.getElementById('pitch-btn').style.display = isPitching ? 'inline-block' : 'none';
+            document.getElementById('swing-btn').style.display = !isPitching ? 'inline-block' : 'none';
+            document.getElementById('take-btn').style.display = !isPitching ? 'inline-block' : 'none';
+
+            // Update special button
+            const currentPlayer = teams[game.battingTeam].players[game.currentBatter];
+            const specialKey = `${game.battingTeam}-${game.currentBatter}`;
+            const specialBtn = document.getElementById('special-btn');
+            
+            if (game.battingTeam === game.playerTeam && !game.specialsUsed.has(specialKey)) {
+                specialBtn.style.display = 'inline-block';
+                specialBtn.disabled = false;
+            } else {
+                specialBtn.style.display = 'none';
+            }
+
+            // Update current inning highlight
+            const currentInningIndex = game.inning - 1;
+            document.querySelectorAll('.scoreboard-cell').forEach(cell => {
+                cell.classList.remove('current-inning');
+            });
+            
+            const currentCell = game.halfInning === 'top' 
+                ? document.getElementById(`score-${game.battingTeam}-${currentInningIndex}`)
+                : document.getElementById(`score-${game.fieldingTeam}-${currentInningIndex}`);
+            if (currentCell) currentCell.classList.add('current-inning');
+
+            // Update player sprites
+            const pitcher = document.getElementById('pitcher');
+            const batter = document.getElementById('batter');
+            pitcher.style.background = teams[game.fieldingTeam].color;
+            batter.style.background = teams[game.battingTeam].color;
+            pitcher.textContent = teams[game.fieldingTeam].emoji;
+            batter.textContent = teams[game.battingTeam].emoji;
+
+            // Update fielder colors to match fielding team
+            const fielderNodes = document.querySelectorAll('.fielder');
+            fielderNodes.forEach(el => {
+                el.style.background = teams[game.fieldingTeam].color;
+            });
+        }
+
+        // Player pitch
+        function playerPitch() {
+            if (game.pitchInProgress || game.fieldingTeam !== game.playerTeam) return;
+            
+            game.pitchInProgress = true;
+            
+            const pitcher = teams[game.fieldingTeam].pitchers[game.currentPitcher];
+            const isStrike = Math.random() < 0.65;
+            
+            animatePitch(isStrike, () => {
+                if (cpuDecideSwing(isStrike)) {
+                    const hit = calculateHit(teams[game.battingTeam].players[game.currentBatter], 50, isStrike);
+                    processHitResult(hit);
+                } else {
+                    if (isStrike) {
+                        game.strikes++;
+                        showFeedback("Strike!");
+                    } else {
+                        game.balls++;
+                        showFeedback("Ball!");
+                    }
+                    checkCount();
+                }
+                game.pitchInProgress = false;
+            });
+        }
+
+        // Player swing
+        function playerSwing() {
+            if (game.pitchInProgress || game.battingTeam !== game.playerTeam) return;
+            
+            const power = game.powerMeterValue;
+            game.powerMeterSpeed = Math.min(game.powerMeterSpeed + 0.5, 10);
+            
+            // CPU pitches automatically
+            if (!game.pitchInProgress) {
+                cpuPitch(power, true);
+            }
+        }
+
+        // Player take
+        function playerTake() {
+            if (game.pitchInProgress || game.battingTeam !== game.playerTeam) return;
+            
+            if (!game.pitchInProgress) {
+                cpuPitch(0, false);
+            }
+        }
+
+        // CPU pitch
+        function cpuPitch(power, didSwing) {
+            game.pitchInProgress = true;
+            
+            const pitcher = teams[game.fieldingTeam].pitchers[game.currentPitcher];
+            const strikeChance = adjustPitchingAI();
+            const isStrike = Math.random() < strikeChance;
+            
+            animatePitch(isStrike, () => {
+                if (didSwing) {
+                    const hit = calculateHit(teams[game.battingTeam].players[game.currentBatter], power, isStrike);
+                    processHitResult(hit);
+                } else {
+                    if (isStrike) {
+                        game.strikes++;
+                        showFeedback("Strike!");
+                    } else {
+                        game.balls++;
+                        showFeedback("Ball!");
+                    }
+                    checkCount();
+                }
+                game.pitchInProgress = false;
+            });
+        }
+
+        // CPU batting AI
+        function cpuDecideSwing(isStrike) {
+            let swingChance = 0.5;
+            
+            // Adjust based on count
+            if (game.balls === 3 && game.strikes < 2) swingChance = 0.2;
+            else if (game.strikes === 2) swingChance = 0.6;
+            else if (game.balls === 3) swingChance = 0.3;
+            
+            // Adjust based on pitch
+            if (isStrike) swingChance += 0.3;
+            else swingChance -= 0.2;
+            
+            return Math.random() < swingChance;
+        }
+
+        // Pitching AI adjustments
+        function adjustPitchingAI() {
+            let strikeChance = 0.65;
+            
+            if (game.balls === 3) strikeChance = 0.9;
+            else if (game.strikes === 2) strikeChance = 0.4;
+            else if (game.bases[0] && game.bases[1] && game.bases[2]) strikeChance = 0.75;
+            
+            return strikeChance;
+        }
+
+        // Calculate hit outcome
+        function calculateHit(batter, power, isStrike) {
+            if (game.specialActive) {
+                game.specialActive = false;
+                return handleSpecialAbility(batter);
+            }
+            
+            const contactMod = batter.contact / 100;
+            const powerMod = 0.8 + (power / 100) * 0.4;
+            const strikeMod = isStrike ? 0.7 : 0.3;
+            
+            const hitChance = contactMod * powerMod * strikeMod;
+            
+            if (Math.random() > hitChance) {
+                game.strikes++;
+                return { type: 'strike', message: 'Strike!' };
+            }
+            
+            // Determine hit type
+            const powerFactor = (batter.power / 100) * (power / 100);
+            const roll = Math.random();
+            
+            if (roll < 0.5) {
+                return { type: 'single', message: 'Single!' };
+            } else if (roll < 0.75) {
+                return { type: 'double', message: 'Double!!' };
+            } else if (roll < 0.9) {
+                return { type: 'triple', message: 'Triple!!!' };
+            } else {
+                return { type: 'homerun', message: 'HOME RUN!!!!' };
+            }
+        }
+
+        // Process hit result
+        function processHitResult(hit) {
+            showFeedback(hit.message);
+
+            // Animate fielders and base runners based on hit type
+            if (hit.type !== 'strike') {
+                animateFielders(hit.type);
+                // Animate batter running to appropriate base on hits except homerun
+                if (['single','double','triple'].includes(hit.type)) {
+                    const targetIndex = { single: 0, double: 1, triple: 2 }[hit.type];
+                    animateRunner(targetIndex);
+                }
+            }
+            
+            if (hit.type === 'strike') {
+                checkCount();
+            } else {
+                const runs = advanceRunners(hit.type);
+                game.totalScores[game.battingTeam] += runs;
+                game.scores[game.battingTeam][game.inning - 1] += runs;
+                updateScoreboard();
+                
+                game.balls = 0;
+                game.strikes = 0;
+                
+                setTimeout(() => {
+                    nextBatter();
+                }, 1500);
+            }
+        }
+
+        // Helper to get coordinates of a base relative to game field
+        function getBasePosition(index) {
+            // index: 0=first base, 1=second base, 2=third base
+            const gameField = document.getElementById('game-field');
+            const baseIds = ['first-base','second-base','third-base'];
+            const base = document.getElementById(baseIds[index]);
+            const fieldRect = gameField.getBoundingClientRect();
+            const baseRect = base.getBoundingClientRect();
+            const x = baseRect.left + baseRect.width / 2 - fieldRect.left;
+            const y = baseRect.top + baseRect.height / 2 - fieldRect.top;
+            return { x, y };
+        }
+
+        // Get home plate position (for runner start)
+        function getHomePosition() {
+            const gameField = document.getElementById('game-field');
+            const home = document.getElementById('home-base');
+            const fieldRect = gameField.getBoundingClientRect();
+            const homeRect = home.getBoundingClientRect();
+            const x = homeRect.left + homeRect.width / 2 - fieldRect.left;
+            const y = homeRect.top + homeRect.height / 2 - fieldRect.top;
+            return { x, y };
+        }
+
+        // Animate a runner from home to a target base
+        function animateRunner(targetIndex) {
+            const runner = document.getElementById('runner');
+            const start = getHomePosition();
+            const end = getBasePosition(targetIndex);
+            runner.style.left = start.x - 20 + 'px';
+            runner.style.top = start.y - 20 + 'px';
+            runner.style.display = 'flex';
+            // Force reflow
+            runner.getBoundingClientRect();
+            runner.style.left = end.x - 20 + 'px';
+            runner.style.top = end.y - 20 + 'px';
+            // Hide runner after animation
+            setTimeout(() => {
+                runner.style.display = 'none';
+            }, 800);
+        }
+
+        // Animate fielders responding to a hit
+        function animateFielders(hitType) {
+            // Define target positions for fielders based on hit type
+            const moves = {
+                'single': {
+                    'left-fielder': { top: '30%', left: '30%' },
+                    'center-fielder': { top: '25%', left: '50%', transform: 'translateX(-50%)' },
+                    'right-fielder': { top: '30%', right: '30%' },
+                    'shortstop': { top: '55%', left: '40%' },
+                    'second-baseman-player': { top: '55%', right: '40%' },
+                    'first-baseman-player': { top: '65%', right: '20%' },
+                    'third-baseman-player': { top: '65%', left: '20%' }
+                },
+                'double': {
+                    'left-fielder': { top: '20%', left: '40%' },
+                    'center-fielder': { top: '15%', left: '50%', transform: 'translateX(-50%)' },
+                    'right-fielder': { top: '20%', right: '40%' },
+                    'shortstop': { top: '50%', left: '45%' },
+                    'second-baseman-player': { top: '50%', right: '45%' },
+                    'first-baseman-player': { top: '60%', right: '25%' },
+                    'third-baseman-player': { top: '60%', left: '25%' }
+                },
+                'triple': {
+                    'left-fielder': { top: '15%', left: '50%' },
+                    'center-fielder': { top: '10%', left: '50%', transform: 'translateX(-50%)' },
+                    'right-fielder': { top: '15%', right: '50%' },
+                    'shortstop': { top: '45%', left: '50%' },
+                    'second-baseman-player': { top: '45%', right: '50%' },
+                    'first-baseman-player': { top: '55%', right: '30%' },
+                    'third-baseman-player': { top: '55%', left: '30%' }
+                },
+                'homerun': {
+                    'left-fielder': { top: '20%', left: '20%' },
+                    'center-fielder': { top: '10%', left: '50%', transform: 'translateX(-50%)' },
+                    'right-fielder': { top: '20%', right: '20%' },
+                    'shortstop': { top: '60%', left: '30%' },
+                    'second-baseman-player': { top: '60%', right: '30%' },
+                    'first-baseman-player': { top: '70%', right: '15%' },
+                    'third-baseman-player': { top: '70%', left: '15%' }
+                }
+            };
+            const config = moves[hitType] || moves['single'];
+            Object.keys(config).forEach(id => {
+                const el = document.getElementById(id);
+                const pos = config[id];
+                // Reset any previous right/left transform to avoid conflicts
+                el.style.left = '';
+                el.style.right = '';
+                el.style.top = '';
+                el.style.bottom = '';
+                el.style.transform = '';
+                if (pos.left) el.style.left = pos.left;
+                if (pos.right) el.style.right = pos.right;
+                if (pos.top) el.style.top = pos.top;
+                if (pos.transform) el.style.transform = pos.transform;
+            });
+            // Reset fielders after delay
+            setTimeout(() => {
+                ['left-fielder','center-fielder','right-fielder','shortstop','second-baseman-player','first-baseman-player','third-baseman-player'].forEach(fid => {
+                    const el = document.getElementById(fid);
+                    el.style.left = '';
+                    el.style.right = '';
+                    el.style.top = '';
+                    el.style.bottom = '';
+                    el.style.transform = '';
+                });
+            }, 1500);
+        }
+
+        // Advance runners
+        function advanceRunners(hitType) {
+            let runs = 0;
+            const advances = {
+                single: 1,
+                double: 2,
+                triple: 3,
+                homerun: 4
+            };
+            
+            const advance = advances[hitType];
+            
+            // Score runners
+            for (let i = 2; i >= 0; i--) {
+                if (game.bases[i]) {
+                    if (i + advance >= 3) {
+                        runs++;
+                        game.bases[i] = false;
+                    } else {
+                        game.bases[i + advance] = true;
+                        game.bases[i] = false;
+                    }
+                }
+            }
+            
+            // Place batter
+            if (hitType === 'homerun') {
+                runs++;
+            } else {
+                game.bases[advance - 1] = true;
+            }
+            
+            return runs;
+        }
+
+        // Handle walks
+        function handleWalk() {
+            showFeedback("Walk!");
+            
+            let runs = 0;
+            
+            // Force advance
+            if (game.bases[0] && game.bases[1] && game.bases[2]) {
+                runs = 1;
+                game.totalScores[game.battingTeam]++;
+                game.scores[game.battingTeam][game.inning - 1]++;
+            } else if (game.bases[0] && game.bases[1]) {
+                game.bases[2] = true;
+            } else if (game.bases[0]) {
+                game.bases[1] = true;
+            }
+            
+            game.bases[0] = true;
+            
+            game.balls = 0;
+            game.strikes = 0;
+            
+            updateScoreboard();
+            setTimeout(() => nextBatter(), 1500);
+        }
+
+        // Check count
+        function checkCount() {
+            if (game.strikes >= 3) {
+                showFeedback("Strikeout!");
+                game.outs++;
+                game.balls = 0;
+                game.strikes = 0;
+                checkOuts();
+            } else if (game.balls >= 4) {
+                handleWalk();
+            }
+            
+            updateDisplay();
+        }
+
+        // Check outs
+        function checkOuts() {
+            if (game.outs >= 3) {
+                endHalfInning();
+            } else {
+                setTimeout(() => nextBatter(), 1500);
+            }
+        }
+
+        // Next batter
+        function nextBatter() {
+            game.currentBatter = (game.currentBatter + 1) % 9;
+            updateDisplay();
+            
+            // Auto-pitch for CPU batting
+            if (game.battingTeam === game.cpuTeam) {
+                setTimeout(() => {
+                    if (game.fieldingTeam === game.playerTeam) {
+                        // Wait for player to pitch
+                    } else {
+                        // CPU vs CPU (shouldn't happen but handle it)
+                        playerPitch();
+                    }
+                }, 1500);
+            }
+        }
+
+        // End half inning
+        function endHalfInning() {
+            game.outs = 0;
+            game.balls = 0;
+            game.strikes = 0;
+            game.bases = [false, false, false];
+            
+            if (game.halfInning === 'top') {
+                game.halfInning = 'bottom';
+                [game.battingTeam, game.fieldingTeam] = [game.fieldingTeam, game.battingTeam];
+            } else {
+                game.halfInning = 'top';
+                [game.battingTeam, game.fieldingTeam] = [game.fieldingTeam, game.battingTeam];
+                game.inning++;
+                
+                if (game.inning > game.totalInnings) {
+                    endGame();
+                    return;
+                }
+            }
+            
+            game.currentBatter = 0;
+            game.currentPitcher = Math.floor(Math.random() * 2);
+            updateDisplay();
+        }
+
+        // End game
+        function endGame() {
+            clearInterval(game.powerMeterInterval);
+            
+            const gameOver = document.getElementById('game-over');
+            const winnerText = document.getElementById('winner-text');
+            const finalScore = document.getElementById('final-score');
+            
+            gameOver.style.display = 'flex';
+            
+            if (game.totalScores.memphis > game.totalScores.austin) {
+                winnerText.textContent = "MEMPHIS GRINDHOUSE WINS!";
+                winnerText.style.color = teams.memphis.color;
+            } else if (game.totalScores.austin > game.totalScores.memphis) {
+                winnerText.textContent = "AUSTIN WEIRDOS WIN!";
+                winnerText.style.color = teams.austin.color;
+            } else {
+                winnerText.textContent = "IT'S A TIE!";
+            }
+            
+            finalScore.textContent = `MEM ${game.totalScores.memphis} - AUS ${game.totalScores.austin}`;
+        }
+
+        // Update scoreboard
+        function updateScoreboard() {
+            game.scores.memphis.forEach((score, i) => {
+                const cell = document.getElementById(`score-memphis-${i}`);
+                if (cell) cell.textContent = score || '-';
+            });
+            
+            game.scores.austin.forEach((score, i) => {
+                const cell = document.getElementById(`score-austin-${i}`);
+                if (cell) cell.textContent = score || '-';
+            });
+            
+            document.getElementById('total-memphis').textContent = game.totalScores.memphis;
+            document.getElementById('total-austin').textContent = game.totalScores.austin;
+        }
+
+        // Show feedback
+        function showFeedback(text) {
+            const feedback = document.createElement('div');
+            feedback.className = 'feedback';
+            feedback.textContent = text;
+            document.getElementById('game-container').appendChild(feedback);
+            
+            setTimeout(() => feedback.remove(), 1000);
+        }
+
+        // Animate pitch
+        function animatePitch(isStrike, callback) {
+            const ball = document.querySelector('.ball');
+            const pitcher = document.getElementById('pitcher');
+            
+            // Wind up
+            pitcher.style.transform = 'translate(-50%, -50%) rotate(-30deg) scale(1.2)';
+            
+            setTimeout(() => {
+                pitcher.style.transform = 'translate(-50%, -50%)';
+                
+                // Show and animate ball
+                ball.style.display = 'block';
+                ball.style.top = '45%';
+                ball.style.left = '50%';
+                ball.style.transform = 'translate(-50%, -50%)';
+                
+                setTimeout(() => {
+                    ball.style.transition = 'all 0.6s ease-out';
+                    ball.style.bottom = '150px';
+                    ball.style.top = 'auto';
+                    
+                    if (!isStrike) {
+                        ball.style.left = Math.random() < 0.5 ? '30%' : '70%';
+                    }
+                    
+                    setTimeout(() => {
+                        ball.style.display = 'none';
+                        ball.style.transition = '';
+                        callback();
+                    }, 600);
+                }, 100);
+            }, 300);
+        }
+
+        // Use special ability
+        function useSpecial() {
+            const specialKey = `${game.battingTeam}-${game.currentBatter}`;
+            if (game.specialsUsed.has(specialKey)) return;
+            
+            game.specialsUsed.add(specialKey);
+            game.specialActive = true;
+            
+            const player = teams[game.battingTeam].players[game.currentBatter];
+            showFeedback(`${player.special} ACTIVATED!`);
+            
+            document.getElementById('special-btn').disabled = true;
+            document.getElementById('special-btn').style.display = 'none';
+        }
+
+        // Handle special abilities
+        function handleSpecialAbility(batter) {
+            const specials = {
+                "Guaranteed Hit": { type: 'single', message: 'GUARANTEED Single!' },
+                "Power Blast": { type: 'homerun', message: 'POWER BLAST HOME RUN!' },
+                "Steal Master": { type: 'double', message: 'STEAL MASTER Double!' },
+                "Rally Starter": { type: 'single', message: 'RALLY STARTER Single!' },
+                "Clutch Hit": { type: 'double', message: 'CLUTCH Double!' },
+                "Extra Base": { type: 'triple', message: 'EXTRA BASE Triple!' },
+                "Contact King": { type: 'single', message: 'CONTACT KING Single!' },
+                "Speed Demon": { type: 'triple', message: 'SPEED DEMON Triple!' },
+                "Never Out": { type: 'single', message: 'NEVER OUT Single!' },
+                "Algorithm Hit": { type: 'double', message: 'ALGORITHM Double!' },
+                "Chaos Mode": { 
+                    type: Math.random() < 0.5 ? 'homerun' : 'strike', 
+                    message: Math.random() < 0.5 ? 'CHAOS HOME RUN!' : 'CHAOS STRIKE!' 
+                },
+                "Moonshot": { type: 'homerun', message: 'MOONSHOT HOME RUN!' },
+                "Party Time": { type: 'triple', message: 'PARTY TIME Triple!' },
+                "Rhythm Hit": { type: 'double', message: 'RHYTHM Double!' },
+                "Spring Power": { type: 'homerun', message: 'SPRING POWER HOME RUN!' },
+                "Tech Boost": { type: 'double', message: 'TECH BOOST Double!' },
+                "Weird Magic": { type: 'single', message: 'WEIRD MAGIC Single!' },
+                "Smoke Screen": { type: 'double', message: 'SMOKE SCREEN Double!' }
+            };
+            
+            return specials[batter.special] || { type: 'single', message: 'Special Single!' };
+        }
+
+        // Handle touch events for mobile
+        document.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+    </script>
+</body>
+</html>

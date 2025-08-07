@@ -1,46 +1,31 @@
-# Austin Humphrey - Personal Portfolio
+# Live Sports Scoreboard API
 
-Memphis-raised, Texas-sharpened athlete-executive bringing systematic thinking and competitive edge to sports analytics and business strategy, powered by advanced AI systems.
+## Description
+A simple API build with Node.js and Express and containerized using Docker. It is one component of a project I have worked on using an Adafruit M4 MatrixPortal. In short, it is an LED scoreboard that can show live up-to-the-minute scores for the MLB and NFL. This is the API that is called by the scoreboard to get the live score data. There is also a set of python scripts that I run as cron jobs that is also needed as a part of the data pipeline for this project. The repository for those scripts [can be found here](https://github.com/nishs9/live-sports-score-update-service).
 
-## 🚀 Features
+At the moment, all of the backend infrastructure required for this project is hosted on GCP. My goal is to self-host everything on my Raspberry Pi. As a side objective, I also want to document everything I build and add it to my Github.
 
-- **Modern Design**: Built with Tailwind CSS and smooth animations
-- **Responsive**: Optimized for all devices and screen sizes
-- **Interactive**: Particle effects, glass morphism, and smooth scrolling
-- **Professional**: Complete portfolio showcasing work, experience, and writing
-- **AI Integration**: Links to Mastery Journal and MCP server projects
+## Setup [work in progress...]
 
-## 🛠️ Technologies
+First clone the repository:
 
-- HTML5 & CSS3
-- Tailwind CSS
-- JavaScript (ES6+)
-- Lucide Icons
-- Particles.js
+```bash
+git clone <repo-url>
+cd live-sports-scoreboard-api
+```
 
-## 📱 Sections
+Right now I just have a couple of placeholder endpoints while I work on finishing migrating the code. Information about the endpoints will be added soon. To run the API with docker simply do the following.
 
-- **Hero**: Introduction with animated background
-- **About**: Personal story and background
-- **Work**: Professional projects and platforms
-- **Experience**: Career timeline and achievements
-- **Studies**: Academic journey and education
-- **Writing**: Publications and research
-- **Analytics**: Data visualizations and metrics
-- **Contact**: Professional contact information
+```bash
+docker-compose up --build
+```
 
-## 🔗 External Links
+Visit `localhost:3000` to see the API up and running.
 
-- [Mastery Journal](https://new.express.adobe.com/webpage/design/urn:aaid:sc:VA6C2:983bafaf-fb67-5e5b-8f77-69e47334b25f?category=photos)
-- [Cognitive Performance Portfolio](https://j8r5k8b9jg.wixsite.com/cognitive-performanc)
-- [LinkedIn Profile](https://linkedin.com/in/ahump20)
+### API Endpoints
+Below are the API's endpoints and some basic details about them:
 
-## 📧 Contact
-
-**Austin Humphrey**  
-Email: ahump20@outlook.com  
-Location: Boerne, TX
-
----
-
-© 2024 Austin Humphrey. All Rights Reserved.
+- `/nfl/get-game-count`
+- `/nfl/get-live-score/:id`
+- `/mlb/get-game-count`
+- `/mlb/get-live-score/:id`
