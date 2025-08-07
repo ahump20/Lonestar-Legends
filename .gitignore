@@ -1,0 +1,7 @@
+vendor/
+*.jar
+*.exe
+*.wasm
+*.vsix
+*.DS_Store
+node_modules/
